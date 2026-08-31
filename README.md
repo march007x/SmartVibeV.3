@@ -6,7 +6,7 @@
 ## โครงสร้าง
 
 ```
-streamlit_app.py     จุดเริ่มต้น ประกอบร่างอย่างเดียว
+streamlit_app.py     จุดเริ่มต้นประกอบร่างอย่างเดียว
 requirements.txt     ต้องอยู่ที่รากเท่านั้น (Streamlit Cloud อ่านจากที่นี่)
 
 smartvibe/
@@ -23,29 +23,21 @@ smartvibe/
 └── ui/              วาดอย่างเดียว ห้ามคำนวณ
 
 firmware/   ESP32-S3
-tests/      pytest
-docs/       SETUP.md (คู่มือติดตั้ง) · DECISIONS.md (ทำไมถึงเขียนแบบนี้)
 ```
 
 ## กฎ 3 ข้อ
-
 1. `core/` ห้าม import streamlit
 2. `ui/` ห้ามคำนวณ — เปลี่ยนสีแก้แค่ `theme.py`
 3. ลูกศรพึ่งพาชี้ทางเดียว `ui → core` ไม่มีย้อนกลับ
-
 ## เริ่มใช้
-
 ```bash
 pip install -r requirements-dev.txt
 cp .streamlit/secrets.toml.example .streamlit/secrets.toml   # แล้วกรอกค่าจริง
 streamlit run streamlit_app.py
 pytest
 ```
-
 ## ความลับ
-
 คีย์ทั้งหมดอยู่นอก repo เสมอ — บนเครื่องอยู่ใน `.streamlit/secrets.toml`
 บนคลาวด์อยู่ในหน้า Settings → Secrets ฝั่งบอร์ดอยู่ใน `firmware/.../secrets.h`
 ทั้งสามไฟล์อยู่ใน `.gitignore` แล้ว
-
 ในโค้ดเห็นแค่ *ชื่อ* ของคีย์ เช่น `"GROQ_API_KEY"` ตัวจริงหยิบมาตอนรันด้วย `config.secret()`
