@@ -1,0 +1,7 @@
+# ตั้งค่าของเครื่องมือพัฒนา ไม่เกี่ยวกับการทำงานของแอป
+
+[tool.pytest.ini_options]
+# บอก pytest ว่าให้มองหาแพ็กเกจจากรากโปรเจกต์
+# จะได้เขียน "from smartvibe.core import dsp" ในเทสต์ได้ตรง ๆ
+pythonpath = ["."]
+testpaths = ["tests"]

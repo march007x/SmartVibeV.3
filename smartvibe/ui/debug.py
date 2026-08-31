@@ -1,0 +1,72 @@
+"""แผงข้อมูลทางเทคนิค ไว้ไล่จับปัญหา — ค่าผิดปกติจะขึ้นสีแดงเอง"""
+import time
+
+import numpy as np
+import streamlit as st
+
+from smartvibe import config as C
+
+
+def _item(key: str, val: str, tone: str = "") -> str:
+    return (f'<div class="sv-dbg-item"><div class="sv-dbg-k">{key}</div>'
+            f'<div class="sv-dbg-v {tone}">{val}</div></div>')
+
+
+def render(result, df, t0, client, stuck):
+    with st.expander("ข้อมูลทางเทคนิค (debug)"):
+        dts = np.diff(df["uptime_ms"].values.astype(float))
+        good = dts[(dts >= 5) & (dts <= 150)]
+        dt_med = np.median(good) if len(good) else float("nan")
+        elapsed = (time.perf_counter() - t0) * 1000
+
+        fn_txt = " / ".join(f"{f.fn:.2f}" if f.fn else "—" for f in result.floors)
+        amp_txt = " / ".join(f"{f.amp:.4f}" if f.amp else "—" for f in result.floors)
+        sharp_txt = " / ".join(f"{f.sharpness:.0f}" for f in result.floors)
+
+        items = (
+            _item("จุดในบัฟเฟอร์", f"{len(df)}")
+            + _item("สถานะข้อมูล",
+                    "ขยับปกติ" if stuck == 0 else f"นิ่งมา {stuck} รอบ",
+                    "ok" if stuck == 0 else "bad")
+            + _item("อัตราสุ่มจริง (fs)", f"{result.fs:.2f} Hz")
+            + _item("NYQUIST", f"{result.fs / 2:.1f} Hz")
+            + _item("คาบเฉลี่ย (dt median)", f"{dt_med:.1f} ms")
+            + _item("โหมดที่ใช้",
+                    "ไซน์คงที่" if result.active_mode == "sine" else "ติดตาม fn")
+            + _item("ตรวจพบสัญญาณไซน์", "ใช่" if result.sine_detected else "ไม่")
+            + _item("ความคมของพีค", sharp_txt)
+            + _item("ความถี่กระตุ้นที่ใช้อ้างอิง",
+                    f"{result.f_drive:.2f} Hz" if result.f_drive else "—")
+            + _item("fn ชั้น 1/2/3 (Hz)", fn_txt)
+            + _item("แอมพลิจูด 1/2/3", amp_txt)
+            + _item("T21 · coherence",
+                    f"{result.T21:.3f} · {result.coh21:.2f}" if result.T21 else "—")
+            + _item("T32 · coherence",
+                    f"{result.T32:.3f} · {result.coh32:.2f}" if result.T32 else "—")
+            + _item("เวลาประมวลผล", f"{elapsed:.0f} ms",
+                    "ok" if elapsed < C.REFRESH_MS else "bad")
+            + _item("คีย์ล่าสุดที่ดึงได้", f"{client.last_key or '—'}")
+        )
+        st.markdown(f'<div class="sv-dbg">{items}</div>', unsafe_allow_html=True)
+
+        # เห็นทั้ง f และ 2f พร้อมกัน = ลำโพงเล่นความถี่นั้นได้ไม่สะอาด
+        st.markdown('<div class="sv-dbg-k" style="margin:14px 0 6px">'
+                    'พีคเด่น 3 อันดับของแต่ละชั้น (ความถี่ · ความคม)</div>',
+                    unsafe_allow_html=True)
+        rows = ""
+        for i, fr in enumerate(result.floors):
+            txt = (" · ".join(f"{f:.2f} Hz ({s:.0f})" for f, s in fr.peaks)
+                   if fr.peaks else "—")
+            rows += _item(f"ชั้น {i+1}", txt)
+        if result.other_resonances:
+            rows += _item("ความถี่อื่นที่ตึกตอบสนอง",
+                          " · ".join(f"{f:.1f} Hz" for f in result.other_resonances))
+        st.markdown(f'<div class="sv-dbg">{rows}</div>', unsafe_allow_html=True)
+
+        # เก็บคำเตือนไว้ตรงนี้ ไม่ให้ไปบังหน้าจอหลักตอนนำเสนอ
+        if result.amp_ratio_hint:
+            st.caption(f"⚠️ {result.amp_ratio_hint}")
+        st.markdown(
+            f'<div class="sv-dbg-url">แหล่งข้อมูล: '
+            f'{C.FIREBASE_DOMAIN or "—ยังไม่ตั้งค่า—"}/{C.DB_PATH}.json</div>',
+            unsafe_allow_html=True)

@@ -1,0 +1,240 @@
+"""สี + CSS ชุดเดียวของทั้งเว็บ อยากเปลี่ยนหน้าตาแก้ที่นี่"""
+import streamlit as st
+
+OK      = "#34d399"   # ปกติ
+WARN    = "#fbbf24"   # เฝ้าระวัง
+DANGER  = "#f87171"   # ต้องตรวจสอบ
+ACCENT  = "#60a5fa"   # ค่าธรรมดา ไม่มีนัยสถานะ
+MUTED   = "#8b93a7"   # ป้ายกำกับ
+
+STATUS_COLOR = {"green": OK, "yellow": WARN, "red": DANGER}
+STATUS_TEXT  = {"green": "ปกติ", "yellow": "เฝ้าระวัง", "red": "อันตราย"}
+STATUS_ICON  = {"green": "●", "yellow": "▲", "red": "■"}
+
+
+def bar_color(status: str, has_health: bool) -> str:
+    """ปกติทุกหลอดเป็นฟ้าหมด เปลี่ยนสีเฉพาะชั้นที่มีปัญหาจริง
+
+    เคยให้ชั้นปกติเป็นเขียวแล้วหน้าจอมี 3 สีปนกันทั้งที่ไม่มีอะไรผิด ดูแล้วงง
+    """
+    if not has_health or status == "green":
+        return ACCENT
+    return STATUS_COLOR.get(status, ACCENT)
+
+# ระดับ → (สี, ป้าย, ไอคอน)
+LEVEL = {
+    "ok":     (OK,     "ปกติ",      "●"),
+    "info":   (ACCENT, "ข้อมูล",     "i"),
+    "warn":   (WARN,   "เฝ้าระวัง",  "▲"),
+    "danger": (DANGER, "ต้องตรวจสอบ", "■"),
+}
+
+
+def level_color(level: str) -> str:
+    return LEVEL.get(level, LEVEL["info"])[0]
+
+
+CSS = f"""
+<style>
+/* ============ โครงหน้า ============ */
+.block-container {{ padding-top: 2.0rem; padding-bottom: 3rem; max-width: 1320px; }}
+h1 {{ font-size: 1.75rem !important; font-weight: 700 !important;
+      letter-spacing: -.02em; margin-bottom: .2rem !important; }}
+
+.sv-h {{ font-size: 1.05rem; font-weight: 650; letter-spacing:-.01em;
+         margin: 4px 0 14px; color: #e8ecf4; }}
+
+hr {{ margin: 1.6rem 0 !important; border-color: rgba(255,255,255,.07) !important; }}
+
+/* ============ การ์ดรายชั้น ============ */
+.sv-card {{
+  background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.015));
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 16px;
+  padding: 18px 18px 16px;
+}}
+.sv-card-top {{
+  display:flex; align-items:baseline; justify-content:space-between;
+  height: 30px; margin-bottom: 14px;
+}}
+.sv-floor {{ font-size: 1.15rem; font-weight: 700; color:#f1f4f9; letter-spacing:-.01em; }}
+.sv-rms {{
+  font-size: 11px; color:{MUTED}; font-variant-numeric: tabular-nums;
+  background: rgba(255,255,255,.05); border-radius: 6px; padding: 3px 8px;
+}}
+
+/* --- แถวค่าหนึ่งแถว: ป้าย / ตัวเลข / คำอธิบาย / หลอด --- */
+.sv-label {{
+  font-size: 11px; font-weight: 600; letter-spacing:.05em;
+  color:{MUTED}; height: 15px; line-height:15px; margin-bottom: 3px;
+}}
+.sv-value {{
+  font-size: 27px; font-weight: 640; line-height: 32px; height: 32px;
+  color: #f5f7fa; font-variant-numeric: tabular-nums; letter-spacing:-.02em;
+}}
+.sv-value.sm {{ font-size: 19px; }}
+.sv-sub {{
+  font-size: 11.5px; color:#7c8598; height: 17px; line-height:17px;
+  font-variant-numeric: tabular-nums;
+}}
+.sv-track {{
+  height: 7px; border-radius: 99px; background: rgba(255,255,255,.075);
+  margin: 9px 0 16px; overflow:hidden;
+}}
+.sv-fill {{ height:100%; border-radius:99px; transition: width .35s ease; }}
+.sv-track.empty {{ background: transparent; }}
+
+/* --- ป้ายสถานะท้ายการ์ด --- */
+.sv-pill {{
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  height: 40px; border-radius: 11px; font-size: 13.5px; font-weight: 650;
+  letter-spacing:-.01em;
+}}
+.sv-pill small {{ font-weight:500; opacity:.72; font-size:11.5px; }}
+
+/* ============ แถบแจ้งสถานะ ============ */
+.sv-banner {{
+  display:flex; align-items:center; gap:10px;
+  padding: 13px 16px; border-radius: 12px; font-size:14px; font-weight:600;
+  border:1px solid; margin: 2px 0 6px;
+}}
+.sv-banner .ic {{ font-size:15px; }}
+
+/* ============ แท่งเทียบแอมพลิจูด ============ */
+.sv-amp-row {{ display:flex; align-items:center; gap:14px; margin-bottom:11px; }}
+.sv-amp-name {{ width: 58px; font-size:13px; color:#c3cad8; font-weight:600; flex:none; }}
+.sv-amp-track {{
+  flex:1; height: 26px; border-radius: 8px;
+  background: rgba(255,255,255,.05); overflow:hidden;
+}}
+.sv-amp-fill {{ height:100%; border-radius:8px; transition:width .35s ease; }}
+.sv-amp-val {{
+  width: 74px; text-align:right; font-size:13.5px; font-weight:650;
+  font-variant-numeric: tabular-nums; color:#e6eaf2; flex:none;
+}}
+
+/* ============ คำอธิบายสี ============ */
+.sv-legend {{ display:flex; gap:18px; margin:2px 0 4px; }}
+.sv-key {{ display:flex; align-items:center; gap:7px; font-size:12px; color:{MUTED}; }}
+.sv-key i {{ width:13px; height:6px; border-radius:3px; display:inline-block; }}
+
+/* ============ การ์ดสรุปผล (วิเคราะห์ข้อมูลจากความถี่) ============ */
+.sv-ins {{
+  background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,.012));
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 16px; padding: 18px 20px 16px;
+}}
+.sv-ins-top {{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:14px; margin-bottom: 14px;
+}}
+.sv-ins-tag {{
+  display:inline-flex; align-items:center; gap:7px;
+  font-size:11.5px; font-weight:700; letter-spacing:.04em;
+  padding:5px 11px; border-radius:99px; border:1px solid;
+}}
+.sv-conf {{ text-align:right; flex:none; min-width:132px; }}
+.sv-conf-k {{ font-size:10.5px; letter-spacing:.05em; color:{MUTED}; margin-bottom:4px; }}
+.sv-conf-v {{
+  font-size:15px; font-weight:700; color:#eaeef6;
+  font-variant-numeric: tabular-nums; line-height:1;
+}}
+.sv-conf-track {{
+  height:5px; border-radius:99px; background:rgba(255,255,255,.08);
+  overflow:hidden; margin-top:6px;
+}}
+.sv-conf-fill {{ height:100%; border-radius:99px; transition:width .35s ease; }}
+
+.sv-ins-head {{
+  font-size: 19px; font-weight: 700; letter-spacing:-.015em;
+  line-height:1.35; margin-bottom: 7px;
+}}
+.sv-ins-sum {{ font-size:13.5px; line-height:1.65; color:#c3cad8; }}
+
+.sv-sec {{
+  font-size:10.5px; letter-spacing:.07em; font-weight:700; color:{MUTED};
+  margin: 18px 0 9px; padding-top:14px; border-top:1px solid rgba(255,255,255,.07);
+}}
+.sv-find {{ display:flex; gap:10px; margin-bottom:11px; }}
+.sv-find i {{
+  width:7px; height:7px; border-radius:99px; flex:none; margin-top:6px;
+  display:inline-block;
+}}
+.sv-find-t {{ font-size:13px; font-weight:650; color:#e8ecf4; line-height:1.45;
+              font-variant-numeric: tabular-nums; }}
+.sv-find-d {{ font-size:12px; color:#8f98ab; line-height:1.6; margin-top:2px; }}
+
+.sv-act {{ display:flex; gap:10px; margin-bottom:9px; align-items:flex-start; }}
+.sv-act b {{
+  flex:none; width:19px; height:19px; border-radius:6px; margin-top:1px;
+  background:rgba(96,165,250,.15); color:{ACCENT};
+  font-size:11px; font-weight:700; display:flex;
+  align-items:center; justify-content:center;
+}}
+.sv-act span {{ font-size:12.5px; color:#c3cad8; line-height:1.55; }}
+
+.sv-note {{ font-size:11.5px; color:#7c8598; margin-top:14px; line-height:1.55; }}
+
+/* ============ แผง debug ============ */
+.sv-dbg {{ display:grid; grid-template-columns: repeat(auto-fit,minmax(196px,1fr)); gap:10px; }}
+.sv-dbg-item {{
+  background: rgba(255,255,255,.035); border:1px solid rgba(255,255,255,.07);
+  border-radius: 10px; padding: 10px 13px;
+}}
+.sv-dbg-k {{ font-size:10.5px; letter-spacing:.05em; color:{MUTED}; margin-bottom:3px; }}
+.sv-dbg-v {{ font-size:15px; font-weight:640; color:#eaeef6;
+             font-variant-numeric: tabular-nums; word-break: break-all; }}
+.sv-dbg-v.ok  {{ color:{OK}; }}
+.sv-dbg-v.bad {{ color:{DANGER}; }}
+.sv-dbg-url {{
+  font-size:11.5px; color:#7c8598; margin-top:12px; word-break:break-all;
+  font-family: ui-monospace, monospace;
+}}
+
+/* ============ ปุ่ม ============ */
+/* ปุ่มล้างค่า ทำแดงไว้กันเผลอกด */
+.st-key-btn_reset button {{
+  border: 1px solid rgba(248,113,113,.5) !important;
+  color: #fca5a5 !important; font-weight: 650 !important;
+  background: rgba(248,113,113,.07) !important;
+  height: 46px !important; border-radius: 11px !important;
+}}
+.st-key-btn_reset button:hover {{
+  border-color: {DANGER} !important; color: #fee2e2 !important;
+  background: rgba(248,113,113,.18) !important;
+}}
+/* ปุ่ม AI ทำใหญ่ กดง่าย */
+.st-key-btn_ai_now button, .st-key-btn_ai_trend button {{
+  height: 56px !important; font-size: 15.5px !important; font-weight: 650 !important;
+  border-radius: 13px !important;
+}}
+.st-key-btn_lock button {{ height: 46px !important; font-weight: 650 !important;
+                           border-radius: 11px !important; }}
+</style>
+"""
+
+
+def inject():
+    st.markdown(CSS, unsafe_allow_html=True)
+
+
+def banner(level: str, text: str):
+    """แถบแจ้งสถานะ ใช้แทน st.warning ที่สีจัดเกินไป"""
+    palette = {
+        "success": (OK,     "rgba(52,211,153,.10)", "rgba(52,211,153,.35)", "✓"),
+        "warning": (WARN,   "rgba(251,191,36,.10)", "rgba(251,191,36,.35)", "!"),
+        "error":   (DANGER, "rgba(248,113,113,.10)","rgba(248,113,113,.38)","×"),
+        "info":    (ACCENT, "rgba(96,165,250,.10)", "rgba(96,165,250,.32)", "i"),
+    }
+    c, bg, bd, ic = palette.get(level, palette["info"])
+    st.markdown(
+        f'<div class="sv-banner" style="color:{c};background:{bg};border-color:{bd}">'
+        f'<span class="ic">{ic}</span><span>{text}</span></div>',
+        unsafe_allow_html=True)
+
+
+def bar(pct: float, color: str) -> str:
+    """หลอดแสดงค่า 0-100"""
+    p = max(0.0, min(100.0, float(pct)))
+    return (f'<div class="sv-track"><div class="sv-fill" '
+            f'style="width:{p:.1f}%;background:{color}"></div></div>')
